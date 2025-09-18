@@ -1,0 +1,6 @@
+**/*.output
+**/*.swp
+**/*.ply
+scripts/__pycache__
+Cargo.lock
+target/*
