@@ -135,6 +135,12 @@ def do_trajectory_plot(name, thickness=None, depth=None, boundary=None, plot_fin
         plt.savefig(name+'trajectories.png')
         if show: plt.show()
         plt.close()
+                
+def rectify(aColor):
+    if isinstance(aColor, np.ndarray):
+        return (aColor[0, 0], aColor[0, 1], aColor[0, 2])
+    else:
+        return aColor #(aColor[0], aColor[1], aColor[2])
 
 def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_final_positions=True, plot_origins=True, radius=None, cube_length=None, input_file=None, scaleAbstr=None):
     '''
@@ -156,7 +162,9 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
 
     from stanfordply import StanfordPly
 
-    out = StanfordPly()
+    outRays = StanfordPly()
+    outMesh = StanfordPly()
+    outRest = StanfordPly()
 
     reflected = np.atleast_2d(np.genfromtxt(name+'reflected.output', delimiter=','))
     sputtered = np.atleast_2d(np.genfromtxt(name+'sputtered.output', delimiter=','))
@@ -187,12 +195,12 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
                 x_max = np.max(x)
 
             if plot_origins:
-                color=colormap.to_rgba(Z)[:3]
-                out.points3d(x[0], y[0], z[0], aColor=(color[0, 0], color[0, 1], color[0, 2]), aRadius=2*scaleAbstr)
+                color=rectify(colormap.to_rgba(Z)[:3])
+                outRays.points3d(x[0], y[0], z[0], aColor=color, aRadius=scaleAbstr)
 
             if len(x) > min_length: 
-                color=colormap.to_rgba(Z)[:3]
-                out.plot3d(x, y, z, aColor = (color[0, 0], color[0, 1], color[0, 2]), aRadius=scaleAbstr )
+                color=rectify(colormap.to_rgba(Z)[:3])
+                outRays.plot3d(x, y, z, aColor=color, aRadius=scaleAbstr )
 
             index += trajectory_length
 
@@ -200,17 +208,17 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
             if np.size(sputtered) > 0:
                 sputtered_colors = [colormap.to_rgba(Z)[:3] for Z in sputtered[:,1]]
                 for x, y, z, c in zip(sputtered[:,3], sputtered[:,4], sputtered[:,5], sputtered_colors):
-                    out.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=(c[0, 0], c[0, 1], c[0, 2]), aRadius=2*scaleAbstr)
+                    outRays.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=rectify(c), aRadius=scaleAbstr)
 
             if np.size(reflected) > 0:
                 reflected_colors = [colormap.to_rgba(Z)[:3] for Z in reflected[:,1]]
                 for x, y, z, c in zip(reflected[:,3], reflected[:,4], reflected[:,5], reflected_colors):
-                    out.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=(c[0, 0], c[0, 1], c[0, 2]), aRadius=2*scaleAbstr)
+                    outRays.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=rectify(c), aRadius=scaleAbstr)
 
             if np.size(deposited) > 0:
                 deposited_colors = [colormap.to_rgba(Z)[:3] for Z in deposited[:,1]]
                 for x, y, z, c in zip(deposited[:,2], deposited[:,3], deposited[:,4], deposited_colors):
-                    out.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=(c[0, 0], c[0, 1], c[0, 2]), aRadius=2*scaleAbstr)
+                    outRays.points3d(x*scale_factor, y*scale_factor, z*scale_factor, aColor=rectify(c), aRadius=scaleAbstr)
 
         if boundary:
             x = [x_ for (x_, y_) in boundary]
@@ -219,14 +227,14 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
             x.append(x[0])
             y.append(y[0])
             z.append(z[0])
-            out.plot3d(x, y, z, aColor=(0.1, 0.1, 0.1), aRadius=scaleAbstr)
+            outRays.plot3d(x, y, z, aColor=(0.1, 0.1, 0.1), aRadius=scaleAbstr)
 
         if radius:
             [phi, theta] = np.mgrid[0:2 * np.pi:64j, 0:np.pi:64j]
             x = np.cos(phi)*np.sin(theta)
             y = np.sin(phi)*np.sin(theta)
             z = np.cos(theta)
-            out.mesh(radius*x, radius*y, radius*z, aColor=(0.1,0.7,0.3))
+            outRest.mesh(radius*x, radius*y, radius*z, aColor=(0.1,0.7,0.3))
 
         if cube_length:
             faces = []
@@ -264,7 +272,7 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
 
             for grid in faces:
                 x,y,z = grid
-                out.mesh(x, y, z, aColor=(0.1,0.7,0.3))
+                outRest.mesh(x, y, z, aColor=(0.1,0.7,0.3))
 
         if input_file:
             input = toml.load(input_file)
@@ -273,9 +281,11 @@ def do_trajectory_plot_3d(name, thickness=None, depth=None, boundary=None, plot_
             x = [vertex[0]*scale_factor for vertex in vertices]
             y = [vertex[1]*scale_factor for vertex in vertices]
             z = [vertex[2]*scale_factor for vertex in vertices]
-            out.triangularMesh(x, y, z, triangles, aColor=(0.1, 0.7, 0.3))
+            outMesh.triangularMesh(x, y, z, triangles, aColor=(0.1, 0.7, 0.3))
 
-    out.write(name + '.ply')
+    outRays.write(name + '_rays.ply')
+    outMesh.write(name + '_mesh.ply')
+    outRest.write(name + '_rest.ply')
 
 
 def generate_rustbca_input(Zb, Mb, n, Eca, Ecb, Esa, Esb, Eb, Ma, Za, E0, N, N_, theta,

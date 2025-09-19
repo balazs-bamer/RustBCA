@@ -4,7 +4,7 @@ from rustbcaPly import *
 
 
 def main() -> int:
-    scale = 0.0001
+    scale = 0.005
     if len(sys.argv) < 2:
         raise Exception(f'usage: {sys.argv[0]} filename [abstract scale = {scale}]')
     nameIn = sys.argv[1]
@@ -21,7 +21,7 @@ def main() -> int:
             elif tokens[0] == 'name' and was == strOptions:
                 nameBase = tokens[2].replace('"', '')
                 break;
-    do_trajectory_plot_3d(nameBase, input_file=nameIn, radius=0.1, scaleAbstr=scale)
+    do_trajectory_plot_3d(nameBase, input_file=nameIn, scaleAbstr=scale)
 
 
 if __name__ == '__main__':
